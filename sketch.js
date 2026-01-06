@@ -77,6 +77,7 @@ let x, y;
 let dragging = false;
 let animating = false;
 let swipeDir = 0;
+let vibrationTriggered = false;
 let showTutorial = false;
 let confetti = [];
 let celebrationPlayed = false;
@@ -148,15 +149,22 @@ function preload() {
 }
 
 function setup() {
-  let canvas = createCanvas(360, 640); // 手機比例
+  let canvas = createCanvas(windowWidth, windowHeight); // 自動填滿螢幕
   canvas.style("display", "block");
-  canvas.style("margin", "auto"); // 桌機置中
+  canvas.style("touch-action", "none"); // 禁止手機瀏覽器預設的捲動與縮放
 
   x = width / 2;
   y = height / 2;
 
   mainBg = random(bgImages);
   introStart = millis();
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  // 重置卡片位置到螢幕中央
+  x = width / 2;
+  y = height / 2;
 }
 
 // ===== 主迴圈 =====
@@ -455,6 +463,9 @@ function drawCard(card) {
   push();
   translate(x, y);
   rotate((x - width / 2) * 0.002);
+  
+  // 依據螢幕寬度進行等比例縮放 (基準寬度 360)
+  scale(width / 360);
 
   rectMode(CENTER);
   fill(255);
@@ -1173,6 +1184,7 @@ function drawHistory() {
 // =====================
 function mousePressed() {
   dragging = true;
+  vibrationTriggered = false;
   if (state === "swipe") showTutorial = false;
 }
 
@@ -1180,6 +1192,17 @@ function mouseDragged() {
   if (dragging && !animating && state === "swipe") {
     x = mouseX;
     y = mouseY;
+
+    // 震動回饋邏輯：當拖曳超過閾值時觸發一次短震動
+    let threshold = 40;
+    if (abs(x - width / 2) > threshold) {
+      if (!vibrationTriggered) {
+        if (navigator.vibrate) navigator.vibrate(15); // 輕微震動
+        vibrationTriggered = true;
+      }
+    } else {
+      vibrationTriggered = false;
+    }
   }
 }
 
@@ -1348,6 +1371,7 @@ function mouseClicked() {
 function startSwipe(dir) {
   swipeDir = dir;
   animating = true;
+  if (navigator.vibrate) navigator.vibrate(40); // 確認震動
 }
 
 function nextCard() {
@@ -1499,3 +1523,4 @@ function drawCheckmarkAnimation(x, y, t) {
 
   pop();
 }
+
